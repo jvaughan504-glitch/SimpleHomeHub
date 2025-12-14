@@ -3,8 +3,8 @@
 #include <ESPmDNS.h>
 
 // ================== WiFi CONFIG ==================
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID = "BELL728";
+const char* WIFI_PASS = "9134EC94D365";
 
 // ================== DEVICE LIST ==================
 struct DeviceInfo {
@@ -14,9 +14,9 @@ struct DeviceInfo {
 };
 
 DeviceInfo devices[] = {
-  { "Digital Fireplace", "http://192.168.1.50", "ESP32-C3 servo controlled vent" },
-  { "Desk Fan",          "http://192.168.1.51", "ESP32-C3 PC fan + ARGB control" },
-  { "Sensor Rover",      "http://192.168.1.60", "4WS robot telemetry & control" },
+  { "Bedroom Vent", "http://192.168.1.50", "Smart Heating Vent" },
+  { "Fireplace",          "http://192.168.1.51", "Smart Fireplace" },
+  { "Light",      "http://192.168.1.60", "Smart Light" },
   // Add more here as you build them
 };
 
@@ -122,7 +122,7 @@ void setup() {
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-
+ // WiFi.setTxPower(WIFI_POWER_8_5dBm);
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
