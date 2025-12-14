@@ -2,9 +2,16 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-// ================== WiFi CONFIG ==================
-const char* WIFI_SSID = "BELL728";
-const char* WIFI_PASS = "9134EC94D365";
+#define STA_SSID "BELL728"
+#define STA_PASS "9134EC94D365"
+
+#define AP_SSID "ESP32-BRIDGE"
+#define AP_PASS "87654321"
+
+IPAddress ap_ip(192, 168, 4, 1);
+IPAddress ap_mask(255, 255, 255, 0);
+IPAddress ap_leaseStart(192, 168, 4, 2);
+IPAddress ap_dns(8, 8, 4, 4);
 
 // ================== DEVICE LIST ==================
 struct DeviceInfo {
@@ -24,7 +31,6 @@ const size_t DEVICE_COUNT = sizeof(devices) / sizeof(devices[0]);
 
 // ================== WEB SERVER ==================
 WebServer server(80);
-bool serverStarted = false;
 
 // ----------------- HTML PAGE -----------------
 String generateMainPage() {
@@ -114,59 +120,73 @@ void handleNotFound() {
   server.send(404, "text/plain", msg);
 }
 
-bool connectToWiFi(uint8_t maxAttempts = 30) {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  Serial.print("Connecting to WiFi");
-  uint8_t attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("Connected! IP address: ");
-    Serial.println(WiFi.localIP());
-    return true;
-  }
-
-  Serial.println("Failed to connect to WiFi. Check SSID/password and coverage.");
-  return false;
-}
-
-// ================== SETUP & LOOP ==================
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  Serial.println();
-  Serial.println("ESP32 DIY Device Hub starting...");
-
-  if (!connectToWiFi()) {
+  Serial.setDebugOutput(true);
+  Network.onEvent(onEvent);
+  
+  WiFi.AP.begin();
+  WiFi.AP.config(ap_ip, ap_ip, ap_mask, ap_leaseStart, ap_dns);
+  WiFi.AP.create(AP_SSID, AP_PASS);
+  if(!WiFi.AP.waitStatusBits(ESP_NETIF_STARTED_BIT, 1000)){
+    Serial.println("Failed to start AP!");
     return;
   }
-
-  // Optional: mDNS so you can use http://esp32-hub.local
-  if (MDNS.begin("esp32-hub")) {
-    Serial.println("mDNS responder started: http://esp32-hub.local");
-  } else {
-    Serial.println("Error starting mDNS");
-  }
-
-  server.on("/", handleRoot);
-  server.onNotFound(handleNotFound);
-
-  server.begin();
-  Serial.println("HTTP server started on port 80");
-  serverStarted = true;
+  
+  WiFi.begin(STA_SSID, STA_PASS);
 }
 
 void loop() {
-  if (!serverStarted) {
-    delay(1000);
-    return;
+  delay(20000);
+}
+
+void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
+  switch (event) {
+    case ARDUINO_EVENT_WIFI_STA_START:
+      Serial.println("STA Started");
+      break;
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+      Serial.println("STA Connected");
+      break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      Serial.println("STA Got IP");
+      Serial.println(WiFi.STA);
+      WiFi.AP.enableNAPT(true);
+      break;
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+      Serial.println("STA Lost IP");
+      WiFi.AP.enableNAPT(false);
+      break;
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+      Serial.println("STA Disconnected");
+      WiFi.AP.enableNAPT(false);
+      break;
+    case ARDUINO_EVENT_WIFI_STA_STOP:
+      Serial.println("STA Stopped");
+      break;
+
+    case ARDUINO_EVENT_WIFI_AP_START:
+      Serial.println("AP Started");
+      Serial.println(WiFi.AP);
+      break;
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+      Serial.println("AP STA Connected");
+      break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+      Serial.println("AP STA Disconnected");
+      break;
+    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+      Serial.print("AP STA IP Assigned: ");
+      Serial.println(IPAddress(info.wifi_ap_staipassigned.ip.addr));
+      break;
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+      Serial.println("AP Probe Request Received");
+      break;
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+      Serial.println("AP Stopped");
+      break;
+      
+    default:
+      break;
   }
-  server.handleClient();
 }
