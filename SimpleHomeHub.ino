@@ -2,9 +2,16 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-// ================== WiFi CONFIG ==================
-const char* WIFI_SSID = "BELL728";
-const char* WIFI_PASS = "9134EC94D365";
+#define STA_SSID "BELL728"
+#define STA_PASS "9134EC94D365"
+
+#define AP_SSID "ESP32-BRIDGE"
+#define AP_PASS "87654321"
+
+IPAddress ap_ip(192, 168, 4, 1);
+IPAddress ap_mask(255, 255, 255, 0);
+IPAddress ap_leaseStart(192, 168, 4, 2);
+IPAddress ap_dns(8, 8, 4, 4);
 
 // ================== DEVICE LIST ==================
 struct DeviceInfo {
