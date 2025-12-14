@@ -24,6 +24,7 @@ const size_t DEVICE_COUNT = sizeof(devices) / sizeof(devices[0]);
 
 // ================== WEB SERVER ==================
 WebServer server(80);
+bool serverStarted = false;
 
 // ----------------- HTML PAGE -----------------
 String generateMainPage() {
@@ -113,6 +114,29 @@ void handleNotFound() {
   server.send(404, "text/plain", msg);
 }
 
+bool connectToWiFi(uint8_t maxAttempts = 30) {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  Serial.print("Connecting to WiFi");
+  uint8_t attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("Connected! IP address: ");
+    Serial.println(WiFi.localIP());
+    return true;
+  }
+
+  Serial.println("Failed to connect to WiFi. Check SSID/password and coverage.");
+  return false;
+}
+
 // ================== SETUP & LOOP ==================
 void setup() {
   Serial.begin(115200);
@@ -120,17 +144,9 @@ void setup() {
   Serial.println();
   Serial.println("ESP32 DIY Device Hub starting...");
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
- // WiFi.setTxPower(WIFI_POWER_8_5dBm);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if (!connectToWiFi()) {
+    return;
   }
-  Serial.println();
-  Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
 
   // Optional: mDNS so you can use http://esp32-hub.local
   if (MDNS.begin("esp32-hub")) {
@@ -144,8 +160,13 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP server started on port 80");
+  serverStarted = true;
 }
 
 void loop() {
+  if (!serverStarted) {
+    delay(1000);
+    return;
+  }
   server.handleClient();
 }
