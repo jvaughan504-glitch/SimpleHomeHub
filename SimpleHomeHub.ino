@@ -2,8 +2,8 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-#define STA_SSID "BELL728"
-#define STA_PASS "9134EC94D365"
+#define WIFI_SSID "BELL728"
+#define WIFI_PASS "9134EC94D365"
 
 #define AP_SSID "ESP32-BRIDGE"
 #define AP_PASS "87654321"
